@@ -1,0 +1,5 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Resources/UI/Landing.uss?fileID=7433441132597879392&amp;guid=fd7fe4d10d5d55c4ebfb9e37b18cfc50&amp;type=3#Landing"/>
+    <ui:Label name="Distance" text="Distance" style="-unity-text-align: upper-center; color: rgb(255, 255, 255); flex-direction: column-reverse; align-content: auto; align-items: auto;"/>
+    <ui:Button text="Retry(Space)&#10;" name="Retry" style="bottom: auto; white-space: nowrap; flex-direction: column-reverse; -unity-text-align: middle-center; justify-content: flex-start; align-content: auto; align-items: auto;"/>
+</ui:UXML>

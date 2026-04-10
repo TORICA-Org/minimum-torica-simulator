@@ -1,0 +1,16 @@
+:root {
+}
+
+
+
+.Label {
+    width: 57px;
+    color: rgb(255, 255, 255);
+}
+
+.Value {
+    height: 25px;
+    width: 62px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}

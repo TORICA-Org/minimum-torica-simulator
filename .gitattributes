@@ -1,0 +1,2 @@
+example-6-3-LTS/Library/ArtifactDB filter=lfs diff=lfs merge=lfs -text
+example-6-4/Library/ArtifactDB filter=lfs diff=lfs merge=lfs -text
