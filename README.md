@@ -326,7 +326,7 @@ C#スクリプトは，ヒエラルキー上のゲームオブジェクトにド
 
 `Aircraft`のインスペクターを開きます．
 
-![aircraft-inspector](img/aircraft-inspector.img)
+![aircraft-inspector](img/aircraft-inspector.png)
 
 
 `AerodynamicCalculator`にある`Action Prop`の"︙（縦三点リーダー）"をクリックし，
