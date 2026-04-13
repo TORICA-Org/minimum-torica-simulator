@@ -6,21 +6,46 @@ using UnityEngine.InputSystem;
 
 public class AerodynamicCalculator : MonoBehaviour
 {
+    // public
+
     [SerializeField] private InputActionProperty _actionProp;
 
-    // ===== 新InputSystemの有効化（これが無いと動かない） =====
+    // ===== InputSystemの有効化 =====
     private void OnEnable()
     {
         _actionProp.action.Enable();
     }
 
-    // ===== 新InputSystemの無効化（これが無いと動かない） =====
+    // ===== InputSystemの無効化 =====
     private void OnDisable()
     {
         _actionProp.action.Disable();
     }
 
-    // public
+    public enum Status
+    {
+        PreFlight, // Take-off preparation
+        InFlight, // Flight
+        Landing // Landing
+    }
+    public Status status = Status.PreFlight; // Flight status
+
+    public float Airspeed_TO = 5.0f; // Airspeed at take-off [m/s]
+
+    public float alpha_TO = 0.0f; // Angle of attack at take-off [deg]
+
+    //public bool MousePitchControl = true; // Mouse pitch control: True, False
+
+    //public float MouseSensitivity = 1.0f; // Mouse sensitivity
+
+    public float GustMag = 0.0f; // Gust magnitude at 10m [m/s]
+
+    public float GustDirection = 0.0f; // Gust direction at 10m [deg]
+
+    public Vector3 PlatformPosition = Vector3.zero; // Position of the platform [m]
+
+    public bool pressingSpaceKey = false; // Space key pressing status
+
     [System.NonSerialized]
     public float Airspeed = 0.000f; // Airspeed [m/s]
 
@@ -144,20 +169,8 @@ public class AerodynamicCalculator : MonoBehaviour
         // Input Specifications
         InputSpecifications();
 
-        // Set take-off speed
-        if (GameManager.instance.FlightMode == "BirdmanRally")
-        {
-            //Airspeed_TO = 5.0f; // Airspeed at take-off [m/s]
-            AircraftRigidbody.linearVelocity = Vector3.zero;
-        }
-        else if (GameManager.instance.FlightMode == "TestFlight")
-        { //
-            AircraftRigidbody.linearVelocity = new Vector3(
-                Airspeed0 * Mathf.Cos(Mathf.Deg2Rad * alpha0),
-                -Airspeed0 * Mathf.Sin(Mathf.Deg2Rad * alpha0),
-                0f
-            );
-        }
+        //Airspeed_TO = 5.0f; // Airspeed at take-off [m/s]
+        AircraftRigidbody.linearVelocity = Vector3.zero;
 
         // Calculate CL at cluise
         CL0 = (AircraftRigidbody.mass * Physics.gravity.magnitude) / (0.5f * rho * Airspeed0 * Airspeed0 * Sw);
@@ -172,28 +185,16 @@ public class AerodynamicCalculator : MonoBehaviour
 
     private void FixedUpdate()
     {
-        /*
-        // キーボードの矢印キーを直接監視するテスト
-        if (Keyboard.current != null)
-        {
-            Vector2 testInput = Keyboard.current.allKeys
-                .Where(k => k.isPressed)
-                .Select(k => k.name)
-                .ToList().Count > 0 ? new Vector2(1, 1) : Vector2.zero;
+        DetectPressingSpaceKey();
 
-            // もしくはもっとシンプルに
-            var arrows = Gamepad.current?.leftStick.ReadValue() ?? Vector2.zero;
-            Debug.Log($"Direct Keyboard: {Keyboard.current.upArrowKey.isPressed}");
-        }
-        */
-        if (GameManager.instance.status == GameManager.Status.PreFlight)
+        if (status == Status.PreFlight)
         {
             AircraftRigidbody.isKinematic = true; // 物理挙動を無効化.
             AircraftRigidbody.transform.position = new Vector3(-10f, 11f, 0f); // Take-off position
-            AircraftRigidbody.transform.rotation = Quaternion.Euler(0f, 0f, GameManager.instance.alpha_TO); // Take-off attitude
+            AircraftRigidbody.transform.rotation = Quaternion.Euler(0f, 0f, alpha_TO); // Take-off attitude
             return;
         }
-        else if (GameManager.instance.status == GameManager.Status.Landing)
+        else if (status == Status.Landing)
         {
             AircraftRigidbody.isKinematic = true; // 物理挙動を無効化.
             return;
@@ -229,29 +230,25 @@ public class AerodynamicCalculator : MonoBehaviour
         // Get control surface angles
         de = 0.000f;
         dr = 0.000f;
-        if (GameManager.instance.MousePitchControl)
-        {
-            dh = -(Input.mousePosition.y - dh0) * 0.0002f * GameManager.instance.MouseSensitivity;
-        }
+        //if (MousePitchControl)
+        //{
+        //    dh = -(Input.mousePosition.y - dh0) * 0.0002f * MouseSensitivity;
+        //}
         //Debug.Log(dh);
 
-        //de = Input.GetAxisRaw("Vertical") * deMAX;
-        //dr = -Input.GetAxisRaw("Horizontal") * drMAX;
         Vector2 InputArrowKey = _actionProp.action.ReadValue<Vector2>();
         de = InputArrowKey.y * deMAX;
         dr = -InputArrowKey.x * drMAX;
         //Debug.Log(InputArrowKey);
 
-        //if (Input.GetMouseButton(0)) { dr = drMAX; }
-        //else if (Input.GetMouseButton(1)) { dr = -drMAX; }
         if (Mouse.current.leftButton.isPressed) { dr = drMAX; }
         else if (Mouse.current.rightButton.isPressed) { dr = -drMAX; }
 
         //Debug.Log(dh);
 
         // Gust
-        LocalGustMag = GameManager.instance.GustMag * Mathf.Pow((hE / hE0), 1f / 7f);
-        Gust = Quaternion.AngleAxis(GameManager.instance.GustDirection, Vector3.up) * (Vector3.right * LocalGustMag);
+        LocalGustMag = GustMag * Mathf.Pow((hE / hE0), 1f / 7f);
+        Gust = Quaternion.AngleAxis(GustDirection, Vector3.up) * (Vector3.right * LocalGustMag);
         Vector3 LocalGust = this.transform.InverseTransformDirection(Gust);
         float ug = LocalGust.x + 1e-10f;
         float vg = -LocalGust.z;
@@ -295,20 +292,15 @@ public class AerodynamicCalculator : MonoBehaviour
         AerodynamicMomentum.y = 0.5f * rho * Airspeed * Airspeed * Sw * bw * Cn;
         AerodynamicMomentum.z = 0.5f * rho * Airspeed * Airspeed * Sw * cMAC * Cm;
 
-        //float Distance = (AircraftRigidbody.position - GameManager.instance.PlatformPosition).magnitude - 10f;
-        float DistanceXAxis = GameManager.instance.Aircraft.transform.position.x;
-
-        //Debug.Log("Distance: " + Distance);
-
-        //if (GameManager.instance.FlightMode == "BirdmanRally" && Distance < -0.5f)
-        if (GameManager.instance.FlightMode == "BirdmanRally" && DistanceXAxis < -0.5f)
+        float DistanceXAxis = AircraftRigidbody.transform.position.x;
+        if (DistanceXAxis < -0.5f)
         {
             CalculateRotation();
 
             float W = AircraftRigidbody.mass * Physics.gravity.magnitude;
             float L = 0.5f * rho * Airspeed * Airspeed * Sw * (Cx * Mathf.Sin(Mathf.Deg2Rad * theta) - Cz * Mathf.Cos(Mathf.Deg2Rad * theta));
             float N = (W - L) * Mathf.Cos(Mathf.Deg2Rad * 3.5f); // N=(W-L)*cos(3.5deg)
-            float P = (AircraftRigidbody.mass * GameManager.instance.Airspeed_TO * GameManager.instance.Airspeed_TO) / (2f * 10f); // P=m*Vto*Vto/2*L
+            float P = (AircraftRigidbody.mass * Airspeed_TO * Airspeed_TO) / (2f * 10f); // P=m*Vto*Vto/2*L
 
             TakeoffForce.x = P;
             TakeoffForce.y = N * Mathf.Cos(Mathf.Deg2Rad * 3.5f);
@@ -325,14 +317,18 @@ public class AerodynamicCalculator : MonoBehaviour
         AircraftRigidbody.AddForce(TakeoffForce, ForceMode.Force); // ワールド座標.
 
         nz = AerodynamicForce.y / (AircraftRigidbody.mass * Physics.gravity.magnitude);
+
+        float Distance = (AircraftRigidbody.position - PlatformPosition).magnitude;
+        float Altitude = AircraftRigidbody.position.y - 0.5f; // 機体の図心が地面からおよそ0.5m
+        Debug.Log("Distance: " + Distance + "m    Altitude: " + Altitude + "m");
     }
 
     private void CalculateRotation()
     {
-        float q1 = GameManager.instance.Aircraft.transform.rotation.x;
-        float q2 = -GameManager.instance.Aircraft.transform.rotation.y;
-        float q3 = -GameManager.instance.Aircraft.transform.rotation.z;
-        float q4 = GameManager.instance.Aircraft.transform.rotation.w;
+        float q1 = AircraftRigidbody.transform.rotation.x;
+        float q2 = -AircraftRigidbody.transform.rotation.y;
+        float q3 = -AircraftRigidbody.transform.rotation.z;
+        float q4 = AircraftRigidbody.transform.rotation.w;
 
         float C11 = q1 * q1 - q2 * q2 - q3 * q3 + q4 * q4;
         float C22 = -q1 * q1 + q2 * q2 - q3 * q3 + q4 * q4;
@@ -399,6 +395,30 @@ public class AerodynamicCalculator : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        GameManager.instance.status = GameManager.Status.Landing; // 着陸ステータスに変更.
+        status = Status.Landing; // 着陸ステータスに変更.
+    }
+
+    private void DetectPressingSpaceKey()
+    {
+        if (Keyboard.current == null) return;
+
+        if (Keyboard.current.spaceKey.isPressed && !pressingSpaceKey)
+        {
+            pressingSpaceKey = true;
+            Debug.Log("Space key was pressed.");
+
+            if (status == Status.PreFlight)
+            {
+                status = Status.InFlight;
+            }
+            else
+            {
+                status = Status.PreFlight;
+            }
+        }
+        else if (!Keyboard.current.spaceKey.isPressed && pressingSpaceKey)
+        {
+            pressingSpaceKey = false;
+        }
     }
 }

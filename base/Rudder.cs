@@ -7,13 +7,13 @@ public class Rudder : MonoBehaviour
     private AerodynamicCalculator script;
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        script = GameManager.instance.Aircraft.GetComponent<AerodynamicCalculator>();
+        script = GameObject.Find("Aircraft").GetComponent<AerodynamicCalculator>();
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         transform.localRotation = Quaternion.AngleAxis(script.dr, Vector3.up);
     }
